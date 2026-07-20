@@ -186,7 +186,6 @@ Example:
 Developed by:
 
 - Himanshi Badoliya
-- Team Members
 
 ---
 
