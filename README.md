@@ -186,6 +186,10 @@ Example:
 Developed by:
 
 - Himanshi Badoliya
+- Akshara Bisht
+- Gunjan
+- Ankita Parashar 
+- Mansi Rai 
 
 ---
 
