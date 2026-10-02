@@ -49,11 +49,11 @@ def quick_actions():
 
             chunks = split_resume_text(resume_text)
 
-if not chunks:
-    st.error("❌ No text could be extracted from this PDF. Please upload a text-based PDF.")
-    st.stop()
+            if not chunks:
+                st.error("❌ No text could be extracted from this PDF.")
+                return
 
-create_vector_store(chunks)
+            create_vector_store(chunks)
 
             st.session_state.resume_uploaded = True
             st.session_state.resume_text = resume_text
@@ -102,16 +102,12 @@ create_vector_store(chunks)
 
             with st.spinner("Analyzing Resume..."):
 
-                # ATS
-
                 ats_score = calculate_ats_score(
                     st.session_state.resume_text,
                     st.session_state.jd_text
                 )
 
                 st.session_state.ats_score = ats_score
-
-                # Missing Skills
 
                 missing_skills = get_missing_keywords(
                     st.session_state.resume_text,
@@ -120,16 +116,12 @@ create_vector_store(chunks)
 
                 st.session_state.missing_skills = missing_skills
 
-                # AI Summary
-
                 ai_summary = analyze_resume(
                     st.session_state.resume_text,
                     st.session_state.jd_text
                 )
 
                 st.session_state.ai_summary = ai_summary
-
-                # Resume Match
 
                 resume_match = calculate_match_score(
                     st.session_state.resume_text,
