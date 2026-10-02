@@ -49,7 +49,11 @@ def quick_actions():
 
             chunks = split_resume_text(resume_text)
 
-            create_vector_store(chunks)
+if not chunks:
+    st.error("❌ No text could be extracted from this PDF. Please upload a text-based PDF.")
+    st.stop()
+
+create_vector_store(chunks)
 
             st.session_state.resume_uploaded = True
             st.session_state.resume_text = resume_text
