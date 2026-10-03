@@ -1,14 +1,39 @@
+import requests
 import streamlit as st
-from openai import OpenAI
 
 
-def get_openrouter_client():
-    api_key = st.secrets["OPENROUTER_API_KEY"]
+def get_api_key():
+    return st.secrets["OPENROUTER_API_KEY"].strip()
 
-    return OpenAI(
-        api_key=api_key,
-        base_url="https://openrouter.ai/api/v1",
+
+def call_openrouter(prompt):
+    api_key = get_api_key()
+
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": "Bearer " + api_key,
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": "openai/gpt-4o-mini",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "temperature": 0.7,
+        },
+        timeout=120,
     )
+
+    if response.status_code != 200:
+        return f"Error: {response.status_code} - {response.text}"
+
+    data = response.json()
+
+    return data["choices"][0]["message"]["content"]
 
 
 def analyze_resume(resume_text, jd_text):
@@ -33,19 +58,7 @@ Provide:
 """
 
     try:
-        client = get_openrouter_client()
-
-        response = client.chat.completions.create(
-            model="openai/gpt-4o-mini",
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
-
-        return response.choices[0].message.content
+        return call_openrouter(prompt)
 
     except Exception as e:
         return f"Error: {str(e)}"
@@ -66,19 +79,7 @@ Return only a match score from 0 to 100.
 """
 
     try:
-        client = get_openrouter_client()
-
-        response = client.chat.completions.create(
-            model="openai/gpt-4o-mini",
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
-
-        result = response.choices[0].message.content.strip()
+        result = call_openrouter(prompt).strip()
 
         digits = "".join(filter(str.isdigit, result))
 
