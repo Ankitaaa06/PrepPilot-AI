@@ -6,24 +6,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def get_openrouter_client():
-    """
-    Create the OpenRouter client only when needed.
-    """
+def get_api_key():
+    # Streamlit Cloud
+    try:
+        if "OPENROUTER_API_KEY" in st.secrets:
+            return st.secrets["OPENROUTER_API_KEY"]
+    except Exception:
+        pass
 
-    api_key = os.getenv("OPENROUTER_API_KEY")
+    # Local .env
+    return os.getenv("OPENROUTER_API_KEY")
+
+
+def get_client():
+    api_key = get_api_key()
 
     if not api_key:
-        api_key = st.secrets.get("OPENROUTER_API_KEY")
-
-    if not api_key:
-        raise RuntimeError(
-            "OPENROUTER_API_KEY is not configured."
-        )
+        raise RuntimeError("OPENROUTER_API_KEY not found")
 
     return OpenAI(
-        base_url="https://openrouter.ai/api/v1",
         api_key=api_key,
+        base_url="https://openrouter.ai/api/v1",
     )
 
 
@@ -49,7 +52,7 @@ Provide:
 """
 
     try:
-        client = get_openrouter_client()
+        client = get_client()
 
         response = client.chat.completions.create(
             model="openai/gpt-4o-mini",
@@ -82,7 +85,7 @@ Return only a match score from 0 to 100.
 """
 
     try:
-        client = get_openrouter_client()
+        client = get_client()
 
         response = client.chat.completions.create(
             model="openai/gpt-4o-mini",
@@ -98,10 +101,7 @@ Return only a match score from 0 to 100.
 
         digits = "".join(filter(str.isdigit, result))
 
-        if digits:
-            return min(int(digits), 100)
-
-        return 0
+        return min(int(digits), 100) if digits else 0
 
     except Exception:
         return 0
