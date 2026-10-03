@@ -1,28 +1,9 @@
-import os
 import streamlit as st
 from openai import OpenAI
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
-def get_api_key():
-    # Streamlit Cloud
-    try:
-        if "OPENROUTER_API_KEY" in st.secrets:
-            return st.secrets["OPENROUTER_API_KEY"]
-    except Exception:
-        pass
-
-    # Local .env
-    return os.getenv("OPENROUTER_API_KEY")
-
-
-def get_client():
-    api_key = get_api_key()
-
-    if not api_key:
-        raise RuntimeError("OPENROUTER_API_KEY not found")
+def get_openrouter_client():
+    api_key = st.secrets["OPENROUTER_API_KEY"]
 
     return OpenAI(
         api_key=api_key,
@@ -52,7 +33,7 @@ Provide:
 """
 
     try:
-        client = get_client()
+        client = get_openrouter_client()
 
         response = client.chat.completions.create(
             model="openai/gpt-4o-mini",
@@ -85,7 +66,7 @@ Return only a match score from 0 to 100.
 """
 
     try:
-        client = get_client()
+        client = get_openrouter_client()
 
         response = client.chat.completions.create(
             model="openai/gpt-4o-mini",
@@ -101,7 +82,10 @@ Return only a match score from 0 to 100.
 
         digits = "".join(filter(str.isdigit, result))
 
-        return min(int(digits), 100) if digits else 0
+        if digits:
+            return min(int(digits), 100)
+
+        return 0
 
     except Exception:
         return 0
