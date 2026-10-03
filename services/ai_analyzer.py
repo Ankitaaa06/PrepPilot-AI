@@ -3,113 +3,105 @@ import streamlit as st
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# Load .env file
 load_dotenv()
 
-# OpenRouter Client
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-api_key = os.getenv("OPENROUTER_API_KEY") or st.secrets["OPENROUTER_API_KEY"]
-)
 
-# =====================================================
-# AI Resume Analysis
-# =====================================================
+def get_openrouter_client():
+    """
+    Create the OpenRouter client only when needed.
+    """
 
-def analyze_resume(resume_text, job_description):
+    api_key = os.getenv("OPENROUTER_API_KEY")
 
-    prompt = f"""
-You are an expert ATS Resume Reviewer.
+    if not api_key:
+        api_key = st.secrets.get("OPENROUTER_API_KEY")
 
-IMPORTANT RULES:
-- Do NOT invent or assume any information.
-- Use ONLY the information present in the Resume and Job Description.
-- If something is missing, write "Not Mentioned".
+    if not api_key:
+        raise RuntimeError(
+            "OPENROUTER_API_KEY is not configured."
+        )
 
-Resume:
-{resume_text}
-
-Job Description:
-{job_description}
-
-Analyze professionally.
-
-Return in this format:
-
-## Resume Summary
-
-## Strengths
-
-## Weaknesses
-
-## Missing Skills
-
-## ATS Improvement Tips
-
-## Final Suggestions
-"""
-
-    response = client.chat.completions.create(
-        model="openai/gpt-4o-mini",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
+    return OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
     )
 
-    return response.choices[0].message.content
 
-
-# =====================================================
-# Resume Match Score
-# =====================================================
-
-def calculate_match_score(resume_text, job_description):
+def analyze_resume(resume_text, jd_text):
 
     prompt = f"""
-You are an ATS Resume Matching System.
+You are an AI resume analysis assistant.
 
-Compare the Resume and Job Description.
+Analyze the following resume against the job description.
 
-Resume:
+RESUME:
 {resume_text}
 
-Job Description:
-{job_description}
+JOB DESCRIPTION:
+{jd_text}
 
-Rules:
-- Do NOT guess.
-- Only compare using the provided content.
-
-Return ONLY in this format:
-
-# Resume Match Score
-XX%
-
-# Matching Skills
-- skill
-- skill
-- skill
-
-# Missing Skills
-- skill
-- skill
-- skill
-
-# Recommendation
-Write 3-5 lines explaining how the candidate can improve the resume for this job.
+Provide:
+1. Resume summary
+2. Strengths
+3. Weaknesses
+4. Missing skills
+5. Suggestions for improvement
 """
 
-    response = client.chat.completions.create(
-        model="openai/gpt-4o-mini",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
+    try:
+        client = get_openrouter_client()
 
-    return response.choices[0].message.content
+        response = client.chat.completions.create(
+            model="openai/gpt-4o-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+        return response.choices[0].message.content
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+def calculate_match_score(resume_text, jd_text):
+
+    prompt = f"""
+Compare this resume with this job description.
+
+RESUME:
+{resume_text}
+
+JOB DESCRIPTION:
+{jd_text}
+
+Return only a match score from 0 to 100.
+"""
+
+    try:
+        client = get_openrouter_client()
+
+        response = client.chat.completions.create(
+            model="openai/gpt-4o-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+        result = response.choices[0].message.content.strip()
+
+        digits = "".join(filter(str.isdigit, result))
+
+        if digits:
+            return min(int(digits), 100)
+
+        return 0
+
+    except Exception:
+        return 0

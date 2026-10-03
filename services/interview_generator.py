@@ -1,13 +1,30 @@
-from openai import OpenAI
 import os
+import streamlit as st
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-)
+
+def get_openrouter_client():
+    """
+    Create the OpenRouter client only when needed.
+    """
+
+    api_key = os.getenv("OPENROUTER_API_KEY")
+
+    if not api_key:
+        api_key = st.secrets.get("OPENROUTER_API_KEY")
+
+    if not api_key:
+        raise RuntimeError(
+            "OPENROUTER_API_KEY is not configured."
+        )
+
+    return OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+    )
 
 
 def generate_interview_questions(
@@ -17,10 +34,6 @@ def generate_interview_questions(
     difficulty,
     num_questions
 ):
-    """
-    Generate personalized interview questions
-    using Resume + Job Description.
-    """
 
     prompt = f"""
 You are an expert technical interviewer.
@@ -56,27 +69,33 @@ Example:
 
 # HR Questions
 
-1.
-2.
+1. Question
+2. Question
 
 # Technical Questions
 
-1.
-2.
+1. Question
+2. Question
 
 # Coding Questions
 
-1.
-2.
+1. Question
+2. Question
 """
 
     try:
+
+        client = get_openrouter_client()
+
         response = client.chat.completions.create(
             model="openai/gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an experienced software engineering interviewer."
+                    "content": (
+                        "You are an experienced software engineering "
+                        "interviewer."
+                    )
                 },
                 {
                     "role": "user",
@@ -90,4 +109,5 @@ Example:
         return response.choices[0].message.content
 
     except Exception as e:
+
         return f"Error: {str(e)}"
